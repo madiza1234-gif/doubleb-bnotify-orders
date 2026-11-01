@@ -29,6 +29,9 @@ class ReceiverTests(unittest.TestCase):
     def test_line_verify_empty_events(self):
         self.assertEqual(self.call({'events': []}), set())
 
+    def test_pairing_disabled(self):
+        self.assertEqual(self.call({'events': [self.event()]}, code=''), set())
+
     def test_missing_configuration(self):
         with self.assertRaises(ValueError):
             paired_groups(b'{}', '', '', '')
