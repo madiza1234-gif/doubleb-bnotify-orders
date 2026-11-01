@@ -8,7 +8,7 @@ from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 
 
 def paired_groups(body, signature, secret, pairing_code):
-    if not secret or not pairing_code:
+    if not secret:
         raise ValueError('not configured')
     expected = base64.b64encode(hmac.new(secret.encode(), body, hashlib.sha256).digest()).decode()
     if not hmac.compare_digest(expected, signature):
@@ -16,6 +16,8 @@ def paired_groups(body, signature, secret, pairing_code):
     payload = json.loads(body)
     if not isinstance(payload, dict) or not isinstance(payload.get('events'), list):
         raise ValueError('invalid events')
+    if not pairing_code:
+        return set()  # Pairing is disabled after setup; acknowledge valid LINE events.
     groups = set()
     for event in payload['events']:
         if not isinstance(event, dict):
@@ -65,7 +67,7 @@ class Handler(BaseHTTPRequestHandler):
             return self.reply(413, {'error': 'invalid size'})
         secret = os.environ.get('LINE_CHANNEL_SECRET', '')
         code = os.environ.get('LINE_PAIRING_CODE', '')
-        if not secret or not code:
+        if not secret:
             return self.reply(503, {'error': 'not configured'})
         try:
             groups = paired_groups(self.rfile.read(length), self.headers.get('X-Line-Signature', ''), secret, code)
